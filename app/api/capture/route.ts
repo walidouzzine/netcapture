@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`API: Lancement du navigateur pour ${targetUrl}`);
     browser = await puppeteer.launch({
-      executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      // Utilise la version embarquée de Chromium (pas d'executablePath)
       headless: true, // Run headless in API route
       args: ['--no-sandbox', '--disable-setuid-sandbox'] // Recommended for server environments
     });

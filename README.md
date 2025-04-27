@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NetCapture
 
-## Getting Started
+Projet **Next.js** permettant la capture automatisée de pages web via une API utilisant **Puppeteer** (version "full") et Chromium embarqué.
 
-First, run the development server:
+## Fonctionnalités principales
+- Capture de pages web et de leurs onglets via Puppeteer.
+- Fermeture automatique des popups/bannières gênantes.
+- Prise en charge de la navigation, du scroll et du chargement d'images avant capture.
+- API REST (`/api/capture`) pour lancer des captures côté serveur.
+
+## Installation
+
+```bash
+npm install
+```
+
+Puppeteer téléchargera automatiquement la version de Chromium nécessaire (stockée dans le cache utilisateur, pas dans node_modules).
+
+## Utilisation en développement
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvre [http://localhost:3000](http://localhost:3000) pour accéder à l'application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Utilisation de l'API de capture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Effectue une requête POST sur `/api/capture` avec un JSON :
+```json
+{
+  "url": "https://exemple.com"
+}
+```
+La réponse contiendra les captures d'écran encodées en base64.
 
-## Learn More
+## Production et déploiement
+- **Aucune configuration spéciale n'est requise** : Puppeteer détecte et utilise automatiquement Chromium téléchargé dans le cache utilisateur.
+- Assure-toi que le cache Puppeteer est accessible ou que le serveur peut télécharger Chromium au premier lancement.
+- Si tu utilises Docker ou un serveur Linux, vérifie les dépendances système (voir ci-dessous).
 
-To learn more about Next.js, take a look at the following resources:
+## Dépendances système (Linux)
+Pour exécuter Chromium headless sur Linux, installe les librairies suivantes :
+```bash
+apt-get install -y \
+  fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 libcups2 \
+  libdbus-1-3 libdrm2 libgbm1 libnspr4 libnss3 libxcomposite1 \
+  libxdamage1 libxrandr2 xdg-utils --no-install-recommends
+```
+Plus d'infos : [Puppeteer troubleshooting](https://pptr.dev/troubleshooting/#chrome-headless-doesnt-launch-on-unix)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Références
+- [Documentation Puppeteer](https://pptr.dev/)
+- [Next.js Documentation](https://nextjs.org/docs)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Ce projet a été initialisé avec `create-next-app` et adapté pour l'automatisation web avancée avec Puppeteer.*
