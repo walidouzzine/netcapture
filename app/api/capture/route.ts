@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 // Import types explicitly
-import puppeteer, { Page, Browser, ElementHandle } from 'puppeteer';
+import chromium from '@sparticuz/chromium';
+import puppeteer, { Page, Browser, ElementHandle } from 'puppeteer-core';
 import { URL } from 'url';
 
 // --- Helper Functions (adapted from capture.js) ---
@@ -244,9 +245,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`API: Lancement du navigateur pour ${targetUrl}`);
     browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Recommended for server environments
-      executablePath: process.env.CHROME_PATH || undefined, // Utilise le chemin du .env ou undefined pour la version embarquée
-      headless: true, // Run headless in API route
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
     });
     // Use imported Page type
     const page: Page = await browser.newPage();

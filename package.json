@@ -11,9 +11,10 @@
   "dependencies": {
     "@google-cloud/vision": "^5.1.0",
     "@google/generative-ai": "^0.24.0",
+    "@sparticuz/chromium": "^133.0.0",
     "mime": "^4.0.7",
     "next": "15.3.1",
-    "puppeteer": "^24.7.2",
+    "puppeteer-core": "^24.10.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
