@@ -243,11 +243,20 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`API: Lancement du navigateur pour ${targetUrl}`);
-    browser = await puppeteer.launch({
-      // Utilise la version embarquée de Chromium (pas d'executablePath)
-      headless: true, // Run headless in API route
-      args: ['--no-sandbox', '--disable-setuid-sandbox'] // Recommended for server environments
-    });
+
+    // Force le chemin du cache sur Netlify pour correspondre à l'endroit où
+    // le script postinstall a téléchargé le navigateur.
+    const cacheDirectory = process.env.NETLIFY
+      ? '/opt/buildhome/.cache/puppeteer'
+      : undefined;
+
+    const launchOptions: any = {
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      cacheDirectory: cacheDirectory,
+    };
+
+    browser = await puppeteer.launch(launchOptions);
     // Use imported Page type
     const page: Page = await browser.newPage();
     const VIEWPORT = { width: 1920, height: 1080 };
