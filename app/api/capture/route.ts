@@ -244,9 +244,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`API: Lancement du navigateur pour ${targetUrl}`);
     browser = await puppeteer.launch({
-      // Utilise la version embarquée de Chromium (pas d'executablePath)
+      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Recommended for server environments
+      executablePath: process.env.CHROME_PATH || undefined, // Utilise le chemin du .env ou undefined pour la version embarquée
       headless: true, // Run headless in API route
-      args: ['--no-sandbox', '--disable-setuid-sandbox'] // Recommended for server environments
     });
     // Use imported Page type
     const page: Page = await browser.newPage();
