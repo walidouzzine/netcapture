@@ -246,9 +246,9 @@ export async function POST(request: NextRequest) {
 
     // Force le chemin du cache sur Netlify pour correspondre à l'endroit où
     // le script postinstall a téléchargé le navigateur.
-    const cacheDirectory = process.env.NETLIFY
-      ? '/opt/buildhome/.cache/puppeteer'
-      : undefined;
+    const cacheDirectory = process.env.PUPPETEER_CACHE_DIR
+    //  ? '/opt/buildhome/.cache/puppeteer'
+      //: undefined;
 
     const launchOptions: any = {
       headless: true,
