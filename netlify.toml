@@ -1,8 +1,18 @@
+# This file configures the build and deployment settings for Netlify.
+
 [build]
-  functions = "netlify/functions"
+  # The 'command' and 'publish' directories are typically configured
+  # automatically for Next.js projects by Netlify, but you can
+  # override them here if needed.
+  # command = "npm run build"
+  # publish = ".next"
 
-[[plugins]]
-  package = "netlify-plugin-chromium"
+[build.environment]
+  # This tells Puppeteer where to find the Chrome browser that was
+  # downloaded during the build step. This is crucial because the
+  # execution environment has a different file path than the build environment.
+  PUPPETEER_CACHE_DIR = "/opt/buildhome/.cache/puppeteer"
 
-[functions]
-  external_node_modules = ["puppeteer"]
+# The netlify-plugin-chromium is no longer needed because we are using
+# the 'postinstall' script in package.json to download Chrome, which is the
+# modern and recommended approach.
