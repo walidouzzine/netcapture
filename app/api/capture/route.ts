@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 // Import types explicitly
-import chromium from '@sparticuz/chromium';
-import puppeteer, { Page, Browser, ElementHandle } from 'puppeteer-core';
+import puppeteer, { Page, Browser, ElementHandle } from 'puppeteer';
 import { URL } from 'url';
 
 // --- Helper Functions (adapted from capture.js) ---
@@ -244,71 +243,19 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`API: Lancement du navigateur pour ${targetUrl}`);
-    // Ajout de flags pour la stabilité en environnement serverless
     browser = await puppeteer.launch({
-        args: [
-            ...chromium.args,
-            '--disable-dev-shm-usage',
-            '--no-zygote',
-            '--single-process'
-        ],
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
+      // Utilise la version embarquée de Chromium (pas d'executablePath)
+      headless: true, // Run headless in API route
+      args: ['--no-sandbox', '--disable-setuid-sandbox'] // Recommended for server environments
     });
     // Use imported Page type
     const page: Page = await browser.newPage();
     const VIEWPORT = { width: 1920, height: 1080 };
     await page.setViewport(VIEWPORT);
 
-    // Écouteur pour la déconnexion inattendue
-    browser.on('disconnected', () => {
-        console.warn('API: Navigateur déconnecté de manière inattendue.');
-        browser = null; // Marquer comme nul pour éviter d'autres actions
-    });
-
-    // Optimisation mémoire pour les sites lourds
-    const isHeavySite = targetUrl.includes('huggingface.co');
-    if (isHeavySite) {
-        console.log('API: Site lourd détecté, désactivation des ressources non essentielles pour le chargement.');
-        await page.setRequestInterception(true);
-        page.on('request', (req) => {
-            if (['image', 'stylesheet', 'font'].includes(req.resourceType())) {
-                req.abort();
-            } else {
-                req.continue();
-            }
-        });
-    }
-
     console.log(`API: Chargement de ${targetUrl} ...`);
-    try {
-        await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 90000 });
-        console.log('API: Page chargée (network idle 2).');
-    } catch (gotoError: unknown) {
-        const message = gotoError instanceof Error ? gotoError.message : String(gotoError);
-        console.warn(`API: Erreur pendant page.goto (${message}), tentative de continuation...`);
-        // Si l'erreur est une frame détachée, la page a probablement navigué.
-        // On peut essayer de continuer, car la navigation a peut-être réussi.
-        if (!message.includes('detached')) {
-            throw gotoError; // Relancer si ce n'est pas l'erreur attendue
-        }
-    }
-    
-    // Attente supplémentaire pour la stabilisation de la page
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    if (page.isClosed()) {
-        throw new Error('La page a été fermée prématurément après la navigation.');
-    }
-
-    // Réactiver les requêtes si elles ont été désactivées
-    if (isHeavySite) {
-        console.log('API: Réactivation des ressources pour la capture.');
-        await page.setRequestInterception(false);
-        // Recharger la page avec les ressources pour une capture fidèle
-        await page.reload({ waitUntil: 'networkidle2' });
-    }
+    await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 90000 });
+    console.log('API: Page chargée (network idle 2).');
 
     // *** Fermer les popups après le chargement initial ***
     let popupClosed = await closePopups(page);
@@ -425,10 +372,6 @@ export async function POST(request: NextRequest) {
 
           const filename = generateFilename(targetUrl, tabText);
           console.log(`API: Capture de l'onglet ${tabText}`);
-          if (page.isClosed()) {
-            console.error(`API: Page fermée avant la capture de l'onglet ${tabText}.`);
-            continue;
-          }
           const screenshotBuffer = await page.screenshot({ fullPage: true, encoding: 'base64' }); // fullPage réintroduit
           screenshots.push({ filename, data: screenshotBuffer });
           console.log(`API: Capturé: ${filename}`);
@@ -470,9 +413,6 @@ export async function POST(request: NextRequest) {
       // --- Fin ajustement ---
 
       const filename = generateFilename(targetUrl);
-       if (page.isClosed()) {
-        throw new Error('La page a été fermée prématurément avant la capture simple.');
-      }
       const screenshotBuffer = await page.screenshot({ fullPage: true, encoding: 'base64' }); // fullPage réintroduit
       screenshots.push({ filename, data: screenshotBuffer });
       console.log(`API: Capturé: ${filename}`);
