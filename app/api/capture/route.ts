@@ -261,6 +261,26 @@ export async function POST(request: NextRequest) {
     const VIEWPORT = { width: 1920, height: 1080 };
     await page.setViewport(VIEWPORT);
 
+    // Écouteur pour la déconnexion inattendue
+    browser.on('disconnected', () => {
+        console.warn('API: Navigateur déconnecté de manière inattendue.');
+        browser = null; // Marquer comme nul pour éviter d'autres actions
+    });
+
+    // Optimisation mémoire pour les sites lourds
+    const isHeavySite = targetUrl.includes('huggingface.co');
+    if (isHeavySite) {
+        console.log('API: Site lourd détecté, désactivation des ressources non essentielles pour le chargement.');
+        await page.setRequestInterception(true);
+        page.on('request', (req) => {
+            if (['image', 'stylesheet', 'font'].includes(req.resourceType())) {
+                req.abort();
+            } else {
+                req.continue();
+            }
+        });
+    }
+
     console.log(`API: Chargement de ${targetUrl} ...`);
     try {
         await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 90000 });
@@ -277,6 +297,18 @@ export async function POST(request: NextRequest) {
     
     // Attente supplémentaire pour la stabilisation de la page
     await new Promise(resolve => setTimeout(resolve, 1500));
+
+    if (page.isClosed()) {
+        throw new Error('La page a été fermée prématurément après la navigation.');
+    }
+
+    // Réactiver les requêtes si elles ont été désactivées
+    if (isHeavySite) {
+        console.log('API: Réactivation des ressources pour la capture.');
+        await page.setRequestInterception(false);
+        // Recharger la page avec les ressources pour une capture fidèle
+        await page.reload({ waitUntil: 'networkidle2' });
+    }
 
     // *** Fermer les popups après le chargement initial ***
     let popupClosed = await closePopups(page);
@@ -393,6 +425,10 @@ export async function POST(request: NextRequest) {
 
           const filename = generateFilename(targetUrl, tabText);
           console.log(`API: Capture de l'onglet ${tabText}`);
+          if (page.isClosed()) {
+            console.error(`API: Page fermée avant la capture de l'onglet ${tabText}.`);
+            continue;
+          }
           const screenshotBuffer = await page.screenshot({ fullPage: true, encoding: 'base64' }); // fullPage réintroduit
           screenshots.push({ filename, data: screenshotBuffer });
           console.log(`API: Capturé: ${filename}`);
@@ -434,6 +470,9 @@ export async function POST(request: NextRequest) {
       // --- Fin ajustement ---
 
       const filename = generateFilename(targetUrl);
+       if (page.isClosed()) {
+        throw new Error('La page a été fermée prématurément avant la capture simple.');
+      }
       const screenshotBuffer = await page.screenshot({ fullPage: true, encoding: 'base64' }); // fullPage réintroduit
       screenshots.push({ filename, data: screenshotBuffer });
       console.log(`API: Capturé: ${filename}`);
