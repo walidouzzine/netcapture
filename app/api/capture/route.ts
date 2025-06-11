@@ -244,8 +244,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`API: Lancement du navigateur pour ${targetUrl}`);
+    // Ajout de flags pour la stabilité en environnement serverless
     browser = await puppeteer.launch({
-        args: chromium.args,
+        args: [
+            ...chromium.args,
+            '--disable-dev-shm-usage',
+            '--no-zygote',
+            '--single-process'
+        ],
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
         headless: chromium.headless,
@@ -256,8 +262,21 @@ export async function POST(request: NextRequest) {
     await page.setViewport(VIEWPORT);
 
     console.log(`API: Chargement de ${targetUrl} ...`);
-    await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 90000 });
-    console.log('API: Page chargée (network idle 2).');
+    try {
+        await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 90000 });
+        console.log('API: Page chargée (network idle 2).');
+    } catch (gotoError: unknown) {
+        const message = gotoError instanceof Error ? gotoError.message : String(gotoError);
+        console.warn(`API: Erreur pendant page.goto (${message}), tentative de continuation...`);
+        // Si l'erreur est une frame détachée, la page a probablement navigué.
+        // On peut essayer de continuer, car la navigation a peut-être réussi.
+        if (!message.includes('detached')) {
+            throw gotoError; // Relancer si ce n'est pas l'erreur attendue
+        }
+    }
+    
+    // Attente supplémentaire pour la stabilisation de la page
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     // *** Fermer les popups après le chargement initial ***
     let popupClosed = await closePopups(page);
