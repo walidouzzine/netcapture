@@ -1,0 +1,8 @@
+[build]
+  functions = "netlify/functions"
+
+[[plugins]]
+  package = "netlify-plugin-chromium"
+
+[functions]
+  external_node_modules = ["puppeteer"]

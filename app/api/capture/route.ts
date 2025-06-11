@@ -356,12 +356,31 @@ export async function POST(request: NextRequest) {
                }
            }
 
+          // --- Ajustement dynamique du viewport avant capture ---
+          const bodyHandle = await page.$('body');
+          const boundingBox = await bodyHandle?.boundingBox();
+          await bodyHandle?.dispose();
+
+          const currentViewport = page.viewport();
+          const newHeight = boundingBox?.height || currentViewport?.height || 1080; // Fallback height
+          const newWidth = currentViewport?.width || 1920; // Fallback width
+
+          console.log(`API: Ajustement du viewport à ${newWidth}x${Math.round(newHeight)} pour la capture...`);
+          await page.setViewport({ width: newWidth, height: Math.round(newHeight) });
+          await new Promise(resolve => setTimeout(resolve, 200)); // Petite pause pour le rendu
+          // --- Fin ajustement ---
 
           const filename = generateFilename(targetUrl, tabText);
           console.log(`API: Capture de l'onglet ${tabText}`);
-          const screenshotBuffer = await page.screenshot({ fullPage: true, encoding: 'base64' });
+          const screenshotBuffer = await page.screenshot({ fullPage: true, encoding: 'base64' }); // fullPage réintroduit
           screenshots.push({ filename, data: screenshotBuffer });
           console.log(`API: Capturé: ${filename}`);
+
+          // Restaurer le viewport original
+          if (currentViewport) {
+            console.log(`API: Restauration du viewport à ${currentViewport.width}x${currentViewport.height}.`);
+            await page.setViewport(currentViewport);
+          }
 
           // Dispose handles for this iteration except the clicked one (already disposed below)
           // Type parameters for filter and map
@@ -378,10 +397,31 @@ export async function POST(request: NextRequest) {
       }
     } else {
       console.log("API: Aucune structure d'onglets détectée, capture simple.");
+
+      // --- Ajustement dynamique du viewport avant capture ---
+      const bodyHandle = await page.$('body');
+      const boundingBox = await bodyHandle?.boundingBox();
+      await bodyHandle?.dispose();
+
+      const currentViewport = page.viewport();
+      const newHeight = boundingBox?.height || currentViewport?.height || 1080; // Fallback height
+      const newWidth = currentViewport?.width || 1920; // Fallback width
+
+      console.log(`API: Ajustement du viewport à ${newWidth}x${Math.round(newHeight)} pour la capture...`);
+      await page.setViewport({ width: newWidth, height: Math.round(newHeight) });
+      await new Promise(resolve => setTimeout(resolve, 200)); // Petite pause pour le rendu
+      // --- Fin ajustement ---
+
       const filename = generateFilename(targetUrl);
-      const screenshotBuffer = await page.screenshot({ fullPage: true, encoding: 'base64' });
+      const screenshotBuffer = await page.screenshot({ fullPage: true, encoding: 'base64' }); // fullPage réintroduit
       screenshots.push({ filename, data: screenshotBuffer });
       console.log(`API: Capturé: ${filename}`);
+
+      // Restaurer le viewport original (même si on ferme juste après, bonne pratique)
+      if (currentViewport) {
+        console.log(`API: Restauration du viewport à ${currentViewport.width}x${currentViewport.height}.`);
+        await page.setViewport(currentViewport);
+      }
     }
 
     await browser.close();
